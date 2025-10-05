@@ -1,0 +1,55 @@
+# Название рабочего процесса
+name: Build and Publish
+
+# Триггер: запускать при push в любую ветку
+on:
+  push:
+
+# Задания (jobs), которые будут выполняться
+jobs:
+  build:
+    # Имя задания, включающее название ОС
+    name: Build on ${{ matrix.os }}
+    # ОС, на которых будет выполняться сборка
+    runs-on: ${{ matrix.os }}
+
+    # Стратегия для запуска на нескольких ОС
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    # Шаги выполнения задания
+    steps:
+    # 1. Клонирование репозитория
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Установка .NET SDK 8.0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    # 3. Восстановление зависимостей (NuGet-пакетов)
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # 4. Сборка проекта в конфигурации Release
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    # 5. Публикация проекта
+    - name: Publish application
+      run: dotnet publish --configuration Release --output ./publish --no-build
+
+    # 6. Загрузка артефактов (результатов сборки)
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        # Имя артефакта будет включать ОС, например: myapp-ubuntu-latest
+        name: myapp-${{ matrix.os }}
+        # Путь к файлам для загрузки
+        path: |
+          ./publish/**
+        # Срок хранения артефактов
+        retention-days: 30
